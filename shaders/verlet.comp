@@ -1,0 +1,22 @@
+#version 460 core
+
+uniform int n;
+uniform float totalGM;
+uniform float dt;
+uniform float hr;
+uniform float hz;
+
+layout(binding = 0) buffer currPosBuffer{
+    vec4 currPos[];
+};
+layout(binding = 1) buffer prevPosBuffer{
+    vec4 prevPos[];
+};
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void main(){
+    const uint gid = gl_GlobalInvocationID.x;
+    if(gid < n){
+        prevPos[gid].xyz = 2 * currPos[gid].xyz - prevPos[gid].xyz - totalGM * (1 - exp(-length(currPos[gid].xy) / hr)) * (1 - exp(-abs(currPos[gid].z) / hz)) / length(currPos[gid].xyz) / length(currPos[gid].xyz) * normalize(currPos[gid].xyz) * dt * dt;
+    }
+}

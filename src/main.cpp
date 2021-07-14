@@ -10,6 +10,7 @@
 #include <chrono>
 
 #include "util.hpp"
+#include "galaxy.hpp"
 
 int main(){
     if(!glfwInit()){
@@ -47,19 +48,19 @@ int main(){
     
     const char* shaderFiles[2] = {"shaders/shader.vert", "shaders/shader.frag"};
     const GLuint shaderTypes[2] = {GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
-    GLuint program = loadProgram(2, shaderFiles, shaderTypes);
-    if(program == 0){
+    GLuint renderProgram = loadProgram(2, shaderFiles, shaderTypes);
+    if(renderProgram == 0){
         std::cerr << "Could not create program" << std::endl;
         glfwTerminate();
         return 1;
     }
-    glUseProgram(program);
+    glUseProgram(renderProgram);
     
     glm::mat4 projection = glm::perspective(70.0f, static_cast<float>(width) / height, 0.01f, 10000.0f);
-    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 500.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1000.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 mvp = projection * view * model;
-    GLuint matrixId = glGetUniformLocation(program, "mvp");
+    GLuint matrixId = glGetUniformLocation(renderProgram, "mvp");
     glUniformMatrix4fv(matrixId, 1, GL_FALSE, &mvp[0][0]);
     
     glEnable(GL_MULTISAMPLE);
@@ -72,24 +73,18 @@ int main(){
     
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     
-    float vertices[12] = {-250, -125, 0, 1, 250, -125, 0, 1, 0, 250, 0, 1};
-    GLuint vertexBuffer;
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 12 * sizeof(float), vertices, GL_STATIC_DRAW);
-    
-    float colours[12] = {1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1};
-    GLuint colourBuffer;
-    glGenBuffers(1, &colourBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, colourBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 12 * sizeof(float), colours, GL_STATIC_DRAW);
-    
     const float cameraPanSpeed = 1.0f, cameraDragFactor = 0.002f;
     float phi = 0, theta = 0;
     double cx = 0, cy = 0;
     bool dragging = false;
     
+    bool play = false, spaceBlock = false;
+    
+    bool resetBlock = false;
+    
     auto previousFrameTime = std::chrono::high_resolution_clock::now();
+    
+    Galaxy galaxy(20000, 10000, 200.0f, 20.0f, 2.0f, 200.0f, 0.001f, 0);
     
     while(!glfwWindowShouldClose(window)){
         auto currentFrameTime = std::chrono::high_resolution_clock::now();
@@ -122,25 +117,32 @@ int main(){
             cy = y;
         }
         
-        glm::mat4 mat = mvp * glm::rotate(glm::mat4(1.0f), theta, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), phi, glm::vec3(0.0f, 1.0f, 0.0f));
+        if(!spaceBlock && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
+            play = !play;
+            spaceBlock = true;
+        }
+        if(spaceBlock && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE) spaceBlock = false;
+        
+        if(!resetBlock && glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
+            galaxy.reset();
+            resetBlock = true;
+        }
+        if(resetBlock && glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE) resetBlock = false;
+        
+        glm::mat4 mat = mvp * glm::rotate(glm::mat4(1.0f), theta, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), phi, glm::vec3(0.0f, 0.0f, 1.0f));
         glUniformMatrix4fv(matrixId, 1, GL_FALSE, &mat[0][0]);
         
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (void*) 0);
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, colourBuffer);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*) 0);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
+        if(play) galaxy.integrate();
+        
+        glUseProgram(renderProgram);
+        galaxy.draw();
         
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     
     glDeleteVertexArrays(1, &vertexArray);
-    glDeleteProgram(program);
+    glDeleteProgram(renderProgram);
     
     glfwTerminate();
     
