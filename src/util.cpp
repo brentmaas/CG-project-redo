@@ -3,45 +3,34 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
-GLuint loadShader(const char* file, GLuint type){
-    GLuint shaderId = glCreateShader(type);
-    
-    std::string shaderSource;
-    std::ifstream shaderStream(file, std::ios::in);
-    if(shaderStream.is_open()){
-        std::stringstream strStream;
-        strStream << shaderStream.rdbuf();
-        shaderSource = strStream.str();
-        shaderStream.close();
-    }else{
-        std::cerr << "Could not open " << file << std::endl;
-        return 0;
-    }
-    
-    const char* srcPtr = shaderSource.c_str();
-    glShaderSource(shaderId, 1, &srcPtr, NULL);
-    glCompileShader(shaderId);
-    
+GLuint ShaderBinary::load() const{
+    GLuint shaderId = glCreateShader(this->type);
+    glShaderBinary(1, &shaderId, GL_SHADER_BINARY_FORMAT_SPIR_V, this->binary, this->length);
+    glSpecializeShader(shaderId, "main", 0, nullptr, nullptr);
+
     GLint result = GL_FALSE;
     int infoLogLength;
     glGetShaderiv(shaderId, GL_COMPILE_STATUS, &result);
     glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &infoLogLength);
     if(!result){
-        char errMsg[infoLogLength+1] = "";
+        char errMsg[infoLogLength+1];
         glGetShaderInfoLog(shaderId, infoLogLength, NULL, errMsg);
-        std::cerr << "Could not compile shader " << file << ":" << std::endl;
+        std::cerr << "Could not compile shader:" << std::endl;
         std::cerr << errMsg << std::endl;
         return 0;
     }
-    
+
     return shaderId;
 }
 
-GLuint loadProgram(size_t count, const char** files, const GLuint* types){
+GLuint loadProgram(size_t count, const ShaderBinary* binaries){
     GLuint ids[count];
     for(size_t i = 0;i < count;++i){
-        ids[i] = loadShader(files[i], types[i]);
+        ids[i] = binaries[i].load();
+        if (ids[i] == 0)
+            return 0;
     }
     
     GLuint programId = glCreateProgram();
@@ -57,7 +46,7 @@ GLuint loadProgram(size_t count, const char** files, const GLuint* types){
     glGetProgramiv(programId, GL_LINK_STATUS, &result);
     glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &infoLogLength);
     if(!result){
-        char errMsg[infoLogLength+1] = "";
+        char errMsg[infoLogLength+1];
         glGetProgramInfoLog(programId, infoLogLength, NULL, errMsg);
         std::cerr << "Could not link program:" << std::endl;
         std::cerr << errMsg << std::endl;

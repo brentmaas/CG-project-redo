@@ -3,9 +3,9 @@
 layout(location = 0) in vec4 vertexPosition;
 layout(location = 1) in vec4 vertexColour;
 
-uniform mat4 mvp;
+layout(location = 0) uniform mat4 mvp;
 
-out vec4 fragmentColour;
+layout(location = 0) out vec4 fragmentColour;
 
 void main(){
     gl_Position = mvp * vertexPosition;

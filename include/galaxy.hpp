@@ -22,7 +22,6 @@ private:
     std::vector<glm::vec4> currentPosition, previousPosition, colour;
     std::vector<float> mass;
     GLuint computeProgram;
-    GLuint nId, totalGMId, dtId, hrId, hzId;
     GLuint currentPositionBuffer, previousPositionBuffer, massBuffer, colourBuffer;
     std::default_random_engine randomEngine;
     std::uniform_real_distribution<float> distribution;

@@ -12,6 +12,11 @@
 #include "util.hpp"
 #include "galaxy.hpp"
 
+#include "shader.frag.h"
+#include "shader.vert.h"
+
+const GLuint MATRIX_LOCATION = 0;
+
 int main(){
     if(!glfwInit()){
         std::cerr << "Could not initialise GLFW" << std::endl;
@@ -45,10 +50,19 @@ int main(){
     glfwSwapInterval(1);
     
     gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
+
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback([](GLenum, GLenum, GLuint, GLenum, GLsizei length, const GLchar* message, const void*){
+        std::cout << "[OpenGL] ";
+        std::cout.write(message, length) << std::endl;
+    }, nullptr);
+
+    ShaderBinary shaders[] = {
+        {shaders_shader_vert, sizeof(shaders_shader_vert), GL_VERTEX_SHADER},
+        {shaders_shader_frag, sizeof(shaders_shader_frag), GL_FRAGMENT_SHADER}
+    };
     
-    const char* shaderFiles[2] = {"shaders/shader.vert", "shaders/shader.frag"};
-    const GLuint shaderTypes[2] = {GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
-    GLuint renderProgram = loadProgram(2, shaderFiles, shaderTypes);
+    GLuint renderProgram = loadProgram(std::size(shaders), shaders);
     if(renderProgram == 0){
         std::cerr << "Could not create program" << std::endl;
         glfwTerminate();
@@ -60,9 +74,7 @@ int main(){
     glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1000.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 mvp = projection * view * model;
-    GLuint matrixId = glGetUniformLocation(renderProgram, "mvp");
-    glUniformMatrix4fv(matrixId, 1, GL_FALSE, &mvp[0][0]);
-    
+    glUniformMatrix4fv(MATRIX_LOCATION, 1, GL_FALSE, &mvp[0][0]);
     glEnable(GL_MULTISAMPLE);
     
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -130,7 +142,7 @@ int main(){
         if(resetBlock && glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE) resetBlock = false;
         
         glm::mat4 mat = mvp * glm::rotate(glm::mat4(1.0f), theta, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), phi, glm::vec3(0.0f, 0.0f, 1.0f));
-        glUniformMatrix4fv(matrixId, 1, GL_FALSE, &mat[0][0]);
+        glUniformMatrix4fv(MATRIX_LOCATION, 1, GL_FALSE, &mat[0][0]);
         
         if(play) galaxy.integrate();
         
