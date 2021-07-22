@@ -1,6 +1,13 @@
 #include "galaxy.hpp"
+#include "verlet.comp.h"
 
 #include <iostream>
+
+const GLuint VERLET_N_LOCATION = 0;
+const GLuint VERLET_TOTAL_GM_LOCATION = 1;
+const GLuint VERLET_DT_LOCATION = 2;
+const GLuint VERLET_HR_LOCATION = 3;
+const GLuint VERLET_HZ_LOCATION = 4;
 
 Galaxy::Galaxy(size_t n, size_t nCloud, float hr, float hz, float gmMin, float gmMax, float dt, int seed):
     n(n), nCloud(nCloud), hr(hr), hz(hz), totalMass(0.0f), dt(dt), salpeterA(pow(gmMin, -1.35f)), salpeterB(salpeterA - pow(gmMax, -1.35f)), salpeterC(-1.0f / 1.35f),
@@ -32,27 +39,21 @@ Galaxy::Galaxy(size_t n, size_t nCloud, float hr, float hz, float gmMin, float g
     
     reset();
     
-    const char* shaderFiles[1] = {"shaders/verlet.comp"};
-    const GLuint shaderTypes[1] = {GL_COMPUTE_SHADER};
-    computeProgram = loadProgram(1, shaderFiles, shaderTypes);
+    ShaderBinary shader = {shaders_verlet_comp, sizeof(shaders_verlet_comp), GL_COMPUTE_SHADER};
+    computeProgram = loadProgram(1, &shader);
     if(computeProgram == 0){
         std::cerr << "Could not create compute program" << std::endl;
     }
-    nId = glGetUniformLocation(computeProgram, "n");
-    totalGMId = glGetUniformLocation(computeProgram, "totalGM");
-    dtId = glGetUniformLocation(computeProgram, "dt");
-    hrId = glGetUniformLocation(computeProgram, "hr");
-    hzId = glGetUniformLocation(computeProgram, "hz");
 }
 
 void Galaxy::integrate(){
     if(computeProgram != 0){
         glUseProgram(computeProgram);
-        glUniform1i(nId, n + nCloud);
-        glUniform1f(totalGMId, totalMass);
-        glUniform1f(dtId, dt);
-        glUniform1f(hrId, hr);
-        glUniform1f(hzId, hz);
+        glUniform1i(VERLET_N_LOCATION, n + nCloud);
+        glUniform1f(VERLET_TOTAL_GM_LOCATION, totalMass);
+        glUniform1f(VERLET_DT_LOCATION, dt);
+        glUniform1f(VERLET_HR_LOCATION, hr);
+        glUniform1f(VERLET_HZ_LOCATION, hz);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, currentPositionBuffer);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, previousPositionBuffer);
         
@@ -98,7 +99,7 @@ void Galaxy::reset(){
         float r2 = sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
         float rProj = sqrt(pos.x * pos.x + pos.y * pos.y);
         float cosTheta = pos.x * pos.x / r2 / rProj + pos.y * pos.y / r2 / rProj;
-        float vTot = sqrt(totalMass * (1 - exp(-rProj / hr)) * (1 - exp(-abs(pos.z) / hz)) / r2);
+        float vTot = sqrt(totalMass * (1 - exp(-rProj / hr)) * (1 - exp(-std::abs(pos.z) / hz)) / r2);
         float vProj = vTot * cosTheta;
         prevPos.x = pos.x - vProj * pos.y / rProj * dt;
         prevPos.y = pos.y + vProj * pos.x / rProj * dt;
