@@ -71,3 +71,11 @@ GLuint loadProgram(size_t count, const char** files, const GLuint* types){
     
     return programId;
 }
+
+//Source: en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
+float luminosityFromMass(float mass){
+    if(mass < 0.43f) return 0.23f * pow(mass, 2.3f);
+    if(mass < 2.0f) return pow(mass, 4.0f);
+    if(mass < 55.0f) return 1.4f * pow(mass, 3.5f);
+    return 32000 * mass;
+}

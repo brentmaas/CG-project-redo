@@ -11,7 +11,7 @@
 
 class Galaxy {
 public:
-    Galaxy(size_t n, size_t nCloud, float hr, float hz, float gmMin, float gmMax, float dt, int seed);
+    Galaxy(size_t n, size_t nCloud, float hr, float hz, float gmMin, float gmMax, float dt, int seed, int screenWidth, int screenHeight);
     void integrate();
     void draw();
     void reset();
@@ -20,10 +20,15 @@ private:
     float hr, hz, totalMass, dt;
     float salpeterA, salpeterB, salpeterC;
     std::vector<glm::vec4> currentPosition, previousPosition, colour;
-    std::vector<float> mass;
-    GLuint computeProgram;
+    std::vector<float> mass, luminosity;
+    const float vertexScreen[24] = {-1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1, 1, 1, 1, 1};
+    GLuint hGaussProgram, vGaussProgram, computeProgram;
+    GLuint hGaussImageId, hGaussDepthId;
     GLuint nId, totalGMId, dtId, hrId, hzId;
-    GLuint currentPositionBuffer, previousPositionBuffer, massBuffer, colourBuffer;
+    GLuint currentPositionBuffer, previousPositionBuffer, massBuffer, colourBuffer, luminosityBuffer, vertexScreenBuffer;
+    GLuint framebuffers[2];
+    GLuint framebufferTextures[2];
+    GLuint framebufferDepth;
     std::default_random_engine randomEngine;
     std::uniform_real_distribution<float> distribution;
 };

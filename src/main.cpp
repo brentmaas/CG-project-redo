@@ -84,14 +84,12 @@ int main(){
     
     auto previousFrameTime = std::chrono::high_resolution_clock::now();
     
-    Galaxy galaxy(20000, 10000, 200.0f, 20.0f, 2.0f, 200.0f, 0.001f, 0);
+    Galaxy galaxy(20000, 10000, 200.0f, 20.0f, 10.0f, 25.0f, 0.001f, 0, width, height);
     
     while(!glfwWindowShouldClose(window)){
         auto currentFrameTime = std::chrono::high_resolution_clock::now();
         float dt = static_cast<std::chrono::duration<float>>(currentFrameTime - previousFrameTime).count();
         previousFrameTime = currentFrameTime;
-        
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
             glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -129,12 +127,11 @@ int main(){
         }
         if(resetBlock && glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE) resetBlock = false;
         
-        glm::mat4 mat = mvp * glm::rotate(glm::mat4(1.0f), theta, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), phi, glm::vec3(0.0f, 0.0f, 1.0f));
-        glUniformMatrix4fv(matrixId, 1, GL_FALSE, &mat[0][0]);
-        
         if(play) galaxy.integrate();
         
         glUseProgram(renderProgram);
+        glm::mat4 mat = mvp * glm::rotate(glm::mat4(1.0f), theta, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), phi, glm::vec3(0.0f, 0.0f, 1.0f));
+        glUniformMatrix4fv(matrixId, 1, GL_FALSE, &mat[0][0]);
         galaxy.draw();
         
         glfwSwapBuffers(window);
