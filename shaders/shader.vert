@@ -10,5 +10,5 @@ out vec4 fragmentColour;
 
 void main(){
     gl_Position = mvp * vertexPosition;
-    fragmentColour = vertexLuminosity * vertexColour;
+    fragmentColour = sqrt(vertexLuminosity) * vertexColour;
 }

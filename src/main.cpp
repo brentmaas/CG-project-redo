@@ -84,7 +84,7 @@ int main(){
     
     auto previousFrameTime = std::chrono::high_resolution_clock::now();
     
-    Galaxy galaxy(20000, 10000, 200.0f, 20.0f, 10.0f, 25.0f, 0.001f, 0, width, height);
+    Galaxy galaxy(50000, 25000, 200.0f, 20.0f, 0.5f, 15.0f, 0.001f, 0, width, height);
     
     while(!glfwWindowShouldClose(window)){
         auto currentFrameTime = std::chrono::high_resolution_clock::now();

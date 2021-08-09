@@ -14,6 +14,7 @@ Galaxy::Galaxy(size_t n, size_t nCloud, float hr, float hz, float gmMin, float g
     colour = std::vector<glm::vec4>(n + nCloud, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     mass = std::vector<float>(n + nCloud, 1.0f);
     luminosity = std::vector<float>(n + nCloud, 1.0f);
+    temperature = std::vector<float>(n + nCloud, 6000.0f);
     
     glGenBuffers(1, &currentPositionBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, currentPositionBuffer);
@@ -47,9 +48,6 @@ Galaxy::Galaxy(size_t n, size_t nCloud, float hr, float hz, float gmMin, float g
     if(hGaussProgram == 0){
         std::cerr << "Could not create hGauss program" << std::endl;
     }
-    hGaussImageId = glGetUniformLocation(hGaussProgram, "image");
-    hGaussDepthId = glGetUniformLocation(hGaussProgram, "depth");
-    
     const char* vGaussShaderFiles[2] = {"shaders/gauss.vert", "shaders/vgauss.frag"};
     const GLuint vGaussShaderTypes[2] = {GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
     vGaussProgram = loadProgram(2, vGaussShaderFiles, vGaussShaderTypes);
@@ -72,7 +70,6 @@ Galaxy::Galaxy(size_t n, size_t nCloud, float hr, float hz, float gmMin, float g
     glGenFramebuffers(2, framebuffers);
     glActiveTexture(GL_TEXTURE0);
     glGenTextures(2, framebufferTextures);
-    glGenTextures(1, &framebufferDepth);
     
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[0]);
     glBindTexture(GL_TEXTURE_2D, framebufferTextures[0]);
@@ -96,9 +93,6 @@ Galaxy::Galaxy(size_t n, size_t nCloud, float hr, float hz, float gmMin, float g
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebufferTextures[1], 0);
-    glBindTexture(GL_TEXTURE_2D, framebufferDepth);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, screenWidth, screenHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, framebufferDepth, 0);
     
     framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if(framebufferStatus != GL_FRAMEBUFFER_COMPLETE){
@@ -150,8 +144,6 @@ void Galaxy::draw(){
     glDisableVertexAttribArray(2);
     
     glUseProgram(hGaussProgram);
-    glUniform1i(hGaussImageId, 0);
-    glUniform1i(hGaussDepthId, 1);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[1]);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -159,10 +151,7 @@ void Galaxy::draw(){
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vertexScreenBuffer);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (void*) 0);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, framebufferTextures[0]);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, framebufferDepth);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glDisableVertexAttribArray(0);
     
@@ -174,7 +163,6 @@ void Galaxy::draw(){
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vertexScreenBuffer);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (void*) 0);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, framebufferTextures[1]);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glDisableVertexAttribArray(0);
@@ -199,6 +187,8 @@ void Galaxy::reset(){
         m = pow(salpeterA - salpeterB * distribution(randomEngine), salpeterC);
         totalMass += m;
         luminosity[i] = luminosityFromMass(m);
+        temperature[i] = temperatureFromMass(m);
+        colourFromTemperature(temperature[i], colour[i]);
         
         float r2 = sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
         float rProj = sqrt(pos.x * pos.x + pos.y * pos.y);

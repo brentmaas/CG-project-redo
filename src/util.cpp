@@ -79,3 +79,47 @@ float luminosityFromMass(float mass){
     if(mass < 55.0f) return 1.4f * pow(mass, 3.5f);
     return 32000 * mass;
 }
+
+float temperatureFromMass(float mass){
+    return 5772.005317f * pow(luminosityFromMass(mass) * pow(mass, 3.0f / 2.0f), 0.25f);
+}
+
+//Source: tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/
+void colourFromTemperature(float temp, glm::vec4& c){
+    //R
+    if(temp < 6600.0f){
+        c.x = 1.0f;
+    }else{
+        c.x = 329.698727446f * pow(temp / 100.0f - 60.0f, -0.1332047592f) / 256.0f;
+        if(c.x > 1.0f) c.x = 1.0f;
+        if(c.x < 0.0f) c.x = 0.0f;
+    }
+    
+    //G
+    if(temp < 6600.0f){
+        c.y = (99.4708025861f * log(temp / 100.0f) - 161.1195681661f) / 256.0f;
+        if(c.y > 1.0f) c.y = 1.0f;
+        if(c.y < 0.0f) c.y = 0.0f;
+    }else{
+        c.y = 288.1221695283f / 256.0f * pow(temp / 100.0f - 60.0f, -0.0755148492f);
+        if(c.y > 1.0f) c.y = 1.0f;
+        if(c.y < 0.0f) c.y = 0.0f;
+    }
+    
+    //B
+    if(temp < 2000.0f){
+        c.z = 0.0f;
+    }else if(temp > 6500.0f){
+        c.z = 1.0f;
+    }else{
+        c.z = (138.5177312231f * log(temp / 100.0f - 10.0f) - 305.0447927307f) / 256.0f;
+        if(c.z > 1.0f) c.z = 1.0f;
+        if(c.z < 0.0f) c.z = 0.0f;
+    }
+}
+
+glm::vec4 colourFromTemperature(float temp){
+    glm::vec4 c = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    colourFromTemperature(temp, c);
+    return c;
+}
