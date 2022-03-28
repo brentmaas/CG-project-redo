@@ -9,9 +9,15 @@ project(
 )
 
 sources = [
+    'src/galaxy.cpp',
     'src/glad.c',
-   'src/main.cpp',
-   'src/util.cpp'
+    'src/main.cpp',
+    'src/util.cpp'
+]
+
+dependencies = [
+    dependency('GL'),
+    dependency('GLFW3')
 ]
 
 link_args = []
@@ -19,10 +25,12 @@ if host_machine.system() == 'windows'
     link_args += ['-mwindows']
 endif
 
+run_command(find_program('cp'), '-r', join_paths(meson.source_root(), 'shaders'), meson.build_root())
+
 executable(
     'cgpr',
     sources,
-    dependencies: [dependency('GL'), dependency('GLFW3')],
+    dependencies: dependencies,
     include_directories: [include_directories('src'), include_directories('include')],
     link_args: link_args
 )
